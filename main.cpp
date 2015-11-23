@@ -1,10 +1,17 @@
-#include <QThread>
+//Created by Nickolay Mardanov (aka NeoTheFox)
+//2015
+//This software is destributed on terms of GNU GPL v3 licence
+//For details see "LICENCE"
+
 #include <QTextStream>
+#include <QProcess>
+#include <QDebug>
 #include <QElapsedTimer>
 #include <X11/Xlib.h>
 
-qint64 duration = 3000000000;
+qint64 duration = 300;
 qint64 accumulation = 10000;
+QString command = "glxgears";
 
 QTextStream& qStdOut()
 {
@@ -14,7 +21,15 @@ QTextStream& qStdOut()
 
 void printHelp()
 {
-    qStdOut() << "Shaky";
+    qStdOut() << "Shaky\n";
+    qStdOut() << "by NeoTheFox, 2015\n";
+    qStdOut() << "A window shake detector implementation\n";
+    qStdOut() << "\n\n";
+    qStdOut() << "USAGE:\n";
+    qStdOut() << "-d    :   Duration of shake considered valid\n";
+    qStdOut() << "-a    :   Accumulation of shake considered valid\n";
+    qStdOut() << "-e    :   Path to executable to run upon shake\n";
+    qStdOut() << "-h    :   Print this help\n";
     return;
 }
 
@@ -30,6 +45,10 @@ int main(int argc, char *argv[])
         else if(arg->startsWith("-a"))
         {
             accumulation = arg->split(' ')[1].toInt();
+        }
+        else if(arg->startsWith("-e"))
+        {
+            command = arg->split(' ')[1];
         }
         else if(arg->startsWith("-h"))
         {
@@ -68,7 +87,9 @@ int main(int argc, char *argv[])
         }
         else if(moved > accumulation)
         {
-            qStdOut() << "Collapse all\n";
+            QProcess::startDetached(command);
+
+            qDebug() << "Shake detected! Starting " << command << "\n";
             time = 0;
             moved = 0;
         }
@@ -83,7 +104,10 @@ int main(int argc, char *argv[])
                     moved = 0;
                     time = 0;
                 }
+
                 moved += (abs(lastx - cevent->x) + abs(lasty - cevent->y));
+
+                qDebug() << abs(lastx - cevent->x) << " ; " << abs(lasty - cevent->y);
 
                 lastx = cevent->x;
                 lasty = cevent->y;
