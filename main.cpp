@@ -9,8 +9,8 @@
 #include <QElapsedTimer>
 #include <X11/Xlib.h>
 
-qint64 duration = 300;
-qint64 accumulation = 10000;
+qint64 duration = 2;
+qint64 accumulation = 12000;
 QString command = "glxgears";
 
 QTextStream& qStdOut()
@@ -69,23 +69,23 @@ int main(int argc, char *argv[])
     QElapsedTimer *timer = new QElapsedTimer();
 
     XEvent event;
-    qint32 time = 0;
+    qint64 time = 0;
     qint32 moved = 0;
 
     qint32 lastx = 0;
     qint32 lasty = 0;
-    Window *lastwindow;
+    Window lastwindow;
 
     timer->start();
 
     forever
     {
-        if(time > duration)
+        if(time >= duration)
         {
             time = 0;
             moved = 0;
         }
-        else if(moved > accumulation)
+        else if(moved >= accumulation)
         {
             QProcess::startDetached(command);
 
@@ -93,25 +93,29 @@ int main(int argc, char *argv[])
             time = 0;
             moved = 0;
         }
+
         time += timer->restart();
+
         if(XCheckMaskEvent(display, -1, &event))
         {
             if(event.type == ConfigureNotify)
             {
-                XConfigureEvent *cevent = &event.xconfigure;
-                if(!(lastwindow == &cevent->window))
+                XConfigureEvent cevent = event.xconfigure;
+                if(!(lastwindow == cevent.window))
                 {
                     moved = 0;
                     time = 0;
+                    lastx = cevent.x;
+                    lasty = cevent.y;
                 }
 
-                moved += (abs(lastx - cevent->x) + abs(lasty - cevent->y));
+                moved += (abs(lastx - cevent.x) + abs(lasty - cevent.y));
 
-                qDebug() << abs(lastx - cevent->x) << " ; " << abs(lasty - cevent->y);
+                qDebug() << abs(lastx - cevent.x) << "x" << abs(lasty - cevent.y) << " :" << moved << " @" << time;
 
-                lastx = cevent->x;
-                lasty = cevent->y;
-                lastwindow = &cevent->window;
+                lastx = cevent.x;
+                lasty = cevent.y;
+                lastwindow = cevent.window;
             }
         }
     }
