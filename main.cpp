@@ -9,8 +9,9 @@
 #include <QElapsedTimer>
 #include <X11/Xlib.h>
 
-qint64 duration = 2;
-qint64 accumulation = 12000;
+qint64 duration = 3;
+qint64 accumulation = 800;
+qint32 threshold = 200;
 QString command = "glxgears";
 
 QTextStream& qStdOut()
@@ -29,6 +30,7 @@ void printHelp()
     qStdOut() << "-d    :   Duration of shake considered valid\n";
     qStdOut() << "-a    :   Accumulation of shake considered valid\n";
     qStdOut() << "-e    :   Path to executable to run upon shake\n";
+    qStdOut() << "-t    :   Threshold of movement\n";
     qStdOut() << "-h    :   Print this help\n";
     return;
 }
@@ -49,6 +51,10 @@ int main(int argc, char *argv[])
         else if(arg->startsWith("-e"))
         {
             command = arg->split(' ')[1];
+        }
+        else if(arg->startsWith("-t"))
+        {
+            threshold = arg->split(' ')[1].toInt();
         }
         else if(arg->startsWith("-h"))
         {
@@ -80,18 +86,13 @@ int main(int argc, char *argv[])
 
     forever
     {
-        if(time >= duration)
-        {
-            time = 0;
-            moved = 0;
-        }
+        if(time >= duration) moved = time = 0;
         else if(moved >= accumulation)
         {
             QProcess::startDetached(command);
 
             qDebug() << "Shake detected! Starting " << command << "\n";
-            time = 0;
-            moved = 0;
+            moved = time = 0;
         }
 
         time += timer->restart();
@@ -103,15 +104,18 @@ int main(int argc, char *argv[])
                 XConfigureEvent cevent = event.xconfigure;
                 if(!(lastwindow == cevent.window))
                 {
-                    moved = 0;
-                    time = 0;
+                    moved = time = 0;
                     lastx = cevent.x;
                     lasty = cevent.y;
                 }
 
-                moved += (abs(lastx - cevent.x) + abs(lasty - cevent.y));
+                qint32 modx = abs(lastx - cevent.x);
+                qint32 mody = abs(lasty - cevent.y);
 
-                qDebug() << abs(lastx - cevent.x) << "x" << abs(lasty - cevent.y) << " :" << moved << " @" << time;
+                if(modx + mody <= 60) moved += (modx + mody);
+                else moved = time = 0;
+
+                qDebug() << modx << "x" << mody << " :" << moved << " @" << time;
 
                 lastx = cevent.x;
                 lasty = cevent.y;
