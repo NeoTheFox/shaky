@@ -6,12 +6,12 @@
 #include <QTextStream>
 #include <QProcess>
 #include <QDebug>
-#include <QElapsedTimer>
 #include <QThread>
 #include <X11/Xlib.h>
+#include <time.h>
 
-qint64 duration = 1;
-qint64 accumulation = 800;
+double duration = 500;
+qint64 accumulation = 400;
 qint32 threshold = 200;
 QString command = "glxgears";
 
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
         QString arg = QString(argv[i]);
         if(arg.startsWith("-d"))
         {
-            duration = arg.split(' ')[1].toInt();
+            duration = arg.split(' ')[1].toDouble();
         }
         else if(arg.startsWith("-a"))
         {
@@ -73,17 +73,18 @@ int main(int argc, char *argv[])
     }
     else XSelectInput(display, XDefaultRootWindow(display), SubstructureNotifyMask );
 
-    QElapsedTimer timer;
+    //QElapsedTimer timer;
+    clock_t timer;
 
     XEvent event;
-    qint64 time = 0;
+    double time = 0;
     qint32 moved = 0;
 
     qint32 lastx = 0;
     qint32 lasty = 0;
     Window lastwindow;
 
-    timer.start();
+    //timer.start();
 
     forever
     {
@@ -96,7 +97,7 @@ int main(int argc, char *argv[])
             moved = time = 0;
         }
 
-        time += timer.restart();
+        timer = clock();
         //qDebug() << time;
 
         if(XCheckMaskEvent(display, -1, &event))
@@ -124,5 +125,6 @@ int main(int argc, char *argv[])
                 lastwindow = cevent.window;
             }
         }
+        time += (clock() - timer) / (double) CLOCKS_PER_SEC * 1000;
     }
 }
