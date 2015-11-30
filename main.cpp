@@ -7,9 +7,10 @@
 #include <QProcess>
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QThread>
 #include <X11/Xlib.h>
 
-qint64 duration = 3;
+qint64 duration = 1;
 qint64 accumulation = 800;
 qint32 threshold = 200;
 QString command = "glxgears";
@@ -39,24 +40,24 @@ int main(int argc, char *argv[])
 {
     for(qint32 i = 0; i < argc; i++)
     {
-        QString *arg = new QString(argv[i]);
-        if(arg->startsWith("-d"))
+        QString arg = QString(argv[i]);
+        if(arg.startsWith("-d"))
         {
-            duration = arg->split(' ')[1].toInt();
+            duration = arg.split(' ')[1].toInt();
         }
-        else if(arg->startsWith("-a"))
+        else if(arg.startsWith("-a"))
         {
-            accumulation = arg->split(' ')[1].toInt();
+            accumulation = arg.split(' ')[1].toInt();
         }
-        else if(arg->startsWith("-e"))
+        else if(arg.startsWith("-e"))
         {
-            command = arg->split(' ')[1];
+            command = arg.split(' ')[1];
         }
-        else if(arg->startsWith("-t"))
+        else if(arg.startsWith("-t"))
         {
-            threshold = arg->split(' ')[1].toInt();
+            threshold = arg.split(' ')[1].toInt();
         }
-        else if(arg->startsWith("-h"))
+        else if(arg.startsWith("-h"))
         {
             printHelp();
             return 0;
@@ -72,7 +73,7 @@ int main(int argc, char *argv[])
     }
     else XSelectInput(display, XDefaultRootWindow(display), SubstructureNotifyMask );
 
-    QElapsedTimer *timer = new QElapsedTimer();
+    QElapsedTimer timer;
 
     XEvent event;
     qint64 time = 0;
@@ -82,7 +83,7 @@ int main(int argc, char *argv[])
     qint32 lasty = 0;
     Window lastwindow;
 
-    timer->start();
+    timer.start();
 
     forever
     {
@@ -95,7 +96,8 @@ int main(int argc, char *argv[])
             moved = time = 0;
         }
 
-        time += timer->restart();
+        time += timer.restart();
+        //qDebug() << time;
 
         if(XCheckMaskEvent(display, -1, &event))
         {
